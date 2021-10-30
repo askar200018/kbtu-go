@@ -90,6 +90,130 @@ func (s *Server) basicHandler() chi.Router {
 		s.store.Delete(r.Context(), id)
 	})
 
+	// ACCOUNTS OPERATIONS
+	r.Post("/accounts", func(w http.ResponseWriter, r *http.Request) {
+		body := new(models.CreateAccountBody)
+		if err := json.NewDecoder(r.Body).Decode(body); err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		s.store.CreateAccount(r.Context(), body.Name)
+	})
+	r.Get("/accounts", func(w http.ResponseWriter, r *http.Request) {
+		accounts, err := s.store.GetAccounts(r.Context())
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		render.JSON(w, r, accounts)
+	})
+
+	r.Get("/accounts/{accountId}", func(w http.ResponseWriter, r *http.Request) {
+		accountIdStr := chi.URLParam(r, "accountId")
+		id, err := strconv.Atoi(accountIdStr)
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+		account, err := s.store.GetAccount(r.Context(), id)
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		render.JSON(w, r, account)
+	})
+
+	r.Delete("/accounts/{accountId}", func(w http.ResponseWriter, r *http.Request) {
+		accountIdStr := chi.URLParam(r, "accountId")
+		id, err := strconv.Atoi(accountIdStr)
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+		s.store.DeleteAccount(r.Context(), id)
+	})
+
+	r.Get("/accounts/{accountId}/amount", func(w http.ResponseWriter, r *http.Request) {
+		accountIdStr := chi.URLParam(r, "accountId")
+		id, err := strconv.Atoi(accountIdStr)
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+		amount, err := s.store.GetCurrentAmountOfAccount(r.Context(), id)
+		amountBody := &models.CurrentAmount{Amount: amount}
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		render.JSON(w, r, amountBody)
+	})
+
+	// ACCOUNT TRANSACTIONS
+	r.Post("/accounts/{accountId}/transactions", func(w http.ResponseWriter, r *http.Request) {
+		accountIdStr := chi.URLParam(r, "accountId")
+		id, err := strconv.Atoi(accountIdStr)
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		transaction := new(models.Transaction)
+		if err := json.NewDecoder(r.Body).Decode(transaction); err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		s.store.CreateTransaction(r.Context(), transaction, id)
+	})
+
+	r.Get("/accounts/{accountId}/transactions", func(w http.ResponseWriter, r *http.Request) {
+		accountIdStr := chi.URLParam(r, "accountId")
+		id, err := strconv.Atoi(accountIdStr)
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+		accounts, err := s.store.GetTransactionsByAccount(r.Context(), id)
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		render.JSON(w, r, accounts)
+	})
+
+	r.Put("/transactions", func(w http.ResponseWriter, r *http.Request) {
+		transaction := new(models.Transaction)
+		if err := json.NewDecoder(r.Body).Decode(transaction); err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		s.store.Update(r.Context(), transaction)
+	})
+
+	r.Put("/accounts/{accountId}/transactions", func(w http.ResponseWriter, r *http.Request) {
+		accountIdStr := chi.URLParam(r, "accountId")
+		accountId, err := strconv.Atoi(accountIdStr)
+		if err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		transaction := new(models.Transaction)
+		if err := json.NewDecoder(r.Body).Decode(transaction); err != nil {
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		s.store.UpdateTransaction(r.Context(), transaction, accountId)
+	})
+
 	return r
 }
 
